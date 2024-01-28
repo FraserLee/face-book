@@ -11,6 +11,7 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject var audioRecorder = AudioRecorder()
+    let openAIHelper = OpenAIHelper()
 
     var body: some View {
         // rounded rect taking up the top half of the screen with padding
