@@ -7,14 +7,12 @@
 
 import AVFoundation
 
-class AudioRecorder: NSObject, AVAudioRecorderDelegate {
-    var audioRecorder: AVAudioRecorder?
-    var isRecording: Bool {
-        audioRecorder?.isRecording ?? false
-    }
 
-    override init() {
-        super.init()
+class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
+    @Published var isRecording = false
+    var audioRecorder: AVAudioRecorder!
+    
+    func startRecording() {
         let audioFilename = getDocumentsDirectory().appendingPathComponent("recording.m4a")
 
         let settings = [
@@ -26,48 +24,39 @@ class AudioRecorder: NSObject, AVAudioRecorderDelegate {
 
         do {
             audioRecorder = try AVAudioRecorder(url: audioFilename, settings: settings)
-            audioRecorder?.delegate = self
+            audioRecorder.delegate = self
+            audioRecorder.record()
+            self.isRecording = true
+            print("Recording started")
+        } catch {
+            self.isRecording = false
+            finishRecording()
+        }
+    }
+
+    func finishRecording() {
+        audioRecorder.stop()
+        audioRecorder = nil
+        self.isRecording = false
+        print("Recording ended")
+    }
+    
+    func toggleRecording() {
+        if isRecording {
+            finishRecording()
+        } else {
             startRecording()
-        } catch {
-            print("Audio Recorder setup failed: \(error)")
         }
     }
 
-    func startRecording() {
-        let recordingSession = AVAudioSession.sharedInstance()
-        do {
-            try recordingSession.setCategory(.playAndRecord, mode: .default)
-            try recordingSession.setActive(true)
-            // Request permission to record.
-            recordingSession.requestRecordPermission() { [unowned self] allowed in
-                DispatchQueue.main.async {
-                    if allowed {
-                        print("Permission to record granted. Starting recording...")
-                        self.audioRecorder?.record()
-                    } else {
-                        // Handle the case where permission is denied
-                        // Print error message
-                        print("Permission to record denied.")
-                    }
-                }
-            }
-        } catch {
-            // Handle session setup failure
-        }
-    }
-
-    func stopRecording() {
-        audioRecorder?.stop()
-        print("Recording over.")
-    }
-
-    private func getDocumentsDirectory() -> URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    func getDocumentsDirectory() -> URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        return paths[0]
     }
 
     func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         if !flag {
-            // Handle unsuccessful recording
+            finishRecording()
         }
     }
 }

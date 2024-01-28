@@ -10,8 +10,8 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    private var audioRecorder = AudioRecorder()
-    
+    @StateObject var audioRecorder = AudioRecorder()
+
     var body: some View {
         // rounded rect taking up the top half of the screen with padding
         GeometryReader { geo in
@@ -30,25 +30,21 @@ struct ContentView: View {
                                 .cornerRadius(13)
                                 .imageScale(.medium)
                         }
-
-                        // Audio recording button
-                        Button("Record Audio") {
-                            if audioRecorder.isRecording {
-                                audioRecorder.stopRecording()
-                            } else {
-                                audioRecorder.startRecording()
-                            }
-                        }
                     }
-                    
-                    Text("hello world.")
-                        .font(.system(size: 25, weight: .regular, design: .rounded))
-                        .frame(width: geo.size.width)
+                    .font(.system(size: 25, weight: .regular, design: .rounded))
+                    .frame(width: geo.size.width)
                 }
                 .frame(width: geo.size.width)
                 .frame(height: geo.size.height * (1/2))
             }
-        }.padding(.horizontal)
+        }
+        .padding(.horizontal)
+        .onAppear {
+            audioRecorder.startRecording()
+        }
+        .onDisappear {
+            audioRecorder.finishRecording()
+        }
     }
 
     private func toggleCam() {
