@@ -82,18 +82,3 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         }
     }
 }
-
-
-class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
-    var audioPlayer: AVAudioPlayer!
-
-    func playSound(url: URL) {
-        do {
-            //create your audioPlayer in your parent class as a property
-            self.audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer.play()
-        } catch {
-            print("couldn't load the file")
-        }
-    }
-}

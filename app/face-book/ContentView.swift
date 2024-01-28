@@ -8,8 +8,7 @@
 import SwiftUI
 import SwiftData
 
-let TIMER_DELAY = 5.0
-let FILE_CHECK_DELAY = 1.0
+let TIMER_DELAY = 8.0
 var personView: UIImageView! = nil
 
 let DISPLAY_PORT_SIZE = 140.0
@@ -39,11 +38,9 @@ var outputDisplay = UIView()
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject var audioRecorder = AudioRecorder()
-    @StateObject var audioPlayer = AudioPlayer()
     
     @State private var isTimerActive = false
     @State private var timer = Timer.publish(every: TIMER_DELAY, on: .main, in: .common).autoconnect()
-    @State private var fileCheckTimer = Timer.publish(every: FILE_CHECK_DELAY, on: .main, in: .common).autoconnect()
 
     @State private var openAIHelper: OpenAIHelper?
     @State private var helperInitializationError: Error?
@@ -53,8 +50,6 @@ struct ContentView: View {
         GeometryReader { geo in
             VStack(spacing:10){
                 
-
-
                 GeometryReader{ geo1 in
                     VStack (alignment: .trailing) {
 
@@ -116,11 +111,9 @@ struct ContentView: View {
                 self.isTimerActive = true
                 self.timer = Timer.publish(every: TIMER_DELAY, on: .main, in: .common).autoconnect()
             }
-            self.fileCheckTimer = Timer.publish(every: FILE_CHECK_DELAY, on: .main, in: .common).autoconnect()
         }
         .onDisappear {
             audioRecorder.finishRecording()
-            self.fileCheckTimer.upstream.connect().cancel()
         }
         .onReceive(timer) { _ in
             if isTimerActive {
@@ -157,11 +150,11 @@ struct ContentView: View {
             }
             
 //            let transcript = try await helper.transcribe(fileURL: fileURL).text
-            let transcript = "This is a test for testing purposes. My name is Bob Gendron."
-            print(transcript)
-            
-            let completion = try await helper.sendChatCompletion(prompt: transcript).choices[0].message.content ?? "unknown"
-            print(completion)
+////            let transcript = "This is a test for testing purposes. My name is Bob Gendron."
+//            print(transcript)
+//            
+//            let completion = try await helper.sendChatCompletion(prompt: transcript).choices[0].message.content ?? "unknown"
+//            print(completion)
         } catch {
             print("Error: \(error.localizedDescription)")
         }

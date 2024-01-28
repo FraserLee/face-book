@@ -37,17 +37,9 @@ class OpenAIHelper {
 extension OpenAIHelper {
     func transcribe(fileURL: URL) async throws -> AudioObject {
         do {
-            print("fileURL")
-            print(fileURL)
             let data = try Data(contentsOf: fileURL) // Data retrieved from the file URL.
-            print("data")
-            print(data)
             let parameters = AudioTranscriptionParameters(fileName: fileURL.lastPathComponent, file: data)
-            print("parameters")
-            print(parameters)
             let audioObject = try await service.createTranscription(parameters: parameters)
-            print("audioObject")
-            print(audioObject)
             return audioObject
         } catch {
             throw error
@@ -67,4 +59,16 @@ extension OpenAIHelper {
             throw error
         }
     }
+    
+//    func sendChatCompletion(prompt: String) async throws -> ChatCompletionObject {
+//        do {
+//            let prompt = "You are a name-extraction bot. Read the following transcript carefully. It should contain a conversation between people. Extract the names of the people in the conversation. If no names were said in the conversation, only output \"unknown\"; otherwise, output a list of all names.\nText: " + prompt
+//            let parameters = ChatCompletionParameters(messages: [.init(role: .user, content: .text(prompt))], model: .gpt41106Preview)
+//            let chatCompletionObject = try await service.startChat(parameters: parameters)
+//            return chatCompletionObject
+//        } catch {
+//            // Handle or rethrow the error appropriately
+//            throw error
+//        }
+//    }
 }
