@@ -5,82 +5,42 @@
 //  Created by Henri Lemoine on 2024-01-28.
 //
 
-//import Foundation
-//import OpenAIKit
-//
-//public let openAI = OpenAIKit(apiToken: apiToken, organization: organizationName)
-//
-//openAI.sendChatCompletion(newMessage: AIMessage(role: .user, content: prompt), previousMessages: [], model: .gptV3_5(.gptTurbo), maxTokens: 2048, n: 1, completion: { [weak self] result in
-//    DispatchQueue.main.async { self?.stopLoading() }
-//
-//    switch result {
-//        case .success(let aiResult):
-//            // Handle result actions
-//            if let text = aiResult.choices.first?.message?.content {
-//                print(text)
-//            }
-//        case .failure(let error):
-//            // Handle error actions
-//            print(error.localizedDescription)
-//    }
-//})
-//
-//import Speech
-//import XCAOpenAIClient
-//
-//// Get API key
-//import SwiftDotenv
-//try Dotenv.configure()
-//let apiToken: String = Dotenv.OPENAI_API_KEY
+import Foundation
+import SwiftOpenAI
 
+class OpenAIHelper {
+    private var apiKey: String
+    private var service: OpenAIService
 
-// import Foundation
-// import XCAOpenAIClient
-// import SwiftDotenv
+    init() {
+        self.apiKey = "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"
+        self.service = OpenAIServiceFactory.service(apiKey: apiKey)
+    }
+}
 
+extension OpenAIHelper {
+    func transcribe(fileURL: URL) async throws -> AudioObject {
+        do {
+            let data = try Data(contentsOf: fileURL) // Data retrieved from the file URL.
+            let parameters = AudioTranscriptionParameters(fileName: fileURL.lastPathComponent, file: data)
+            let audioObject = try await service.createTranscription(parameters: parameters)
+            return audioObject
+        } catch {
+            throw error
+        }
+    }
+}
 
-// class OpenAIHelper {
-
-//     private let client: OpenAIClient
-
-//     init() {
-//         let apiToken = self.loadAPIToken()
-//         self.client = OpenAIClient(apiKey: apiToken)
-//     }
-
-//     private func loadAPIToken() -> String {
-//         // Implement logic to load API token from .env or other configuration
-//         try { Dotenv.configure() }
-//         catch {
-//             print("no :(")
-//         }
-//         let apiToken: String = Dotenv.OPENAI_API_KEY
-//         return apiToken
-//     }
-    
-//     // ...
-// }
-
-// extension OpenAIHelper {
-//     func generateAudioTranscription(audioData: Data, fileName: String = "recording.m4a") async throws -> String {
-//         do {
-//             let transcription = try await client.generateAudioTransciptions(audioData: audioData, fileName: fileName)
-//             return transcription
-//         } catch {
-//             // Handle or rethrow the error appropriately
-//             throw error
-//         }
-//     }
-// }
-
-// extension OpenAIHelper {
-//     func sendChatCompletion(prompt: String) async throws -> String {
-//         do {
-//             let completion = try await client.promptChatGPT(prompt: prompt, ...)
-//             return completion
-//         } catch {
-//             // Handle or rethrow the error appropriately
-//             throw error
-//         }
-//     }
-// }
+extension OpenAIHelper {
+    func sendChatCompletion(prompt: String) async throws -> ChatCompletionObject {
+        do {
+            let prompt = "You are a name-extraction bot. Read the following transcript carefully. It should contain a conversation between people. Extract the names of the people in the conversation. If no names were said in the conversation, only output \"unknown\"; otherwise, output a list of all names.\nText: " + prompt
+            let parameters = ChatCompletionParameters(messages: [.init(role: .user, content: .text(prompt))], model: .gpt41106Preview)
+            let chatCompletionObject = try await service.startChat(parameters: parameters)
+            return chatCompletionObject
+        } catch {
+            // Handle or rethrow the error appropriately
+            throw error
+        }
+    }
+}

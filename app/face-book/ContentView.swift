@@ -13,6 +13,8 @@ struct ContentView: View {
     @StateObject var audioRecorder = AudioRecorder()
     let openAIHelper = OpenAIHelper()
 
+    @State private var timer = Timer.publish(every: 20, on: .main, in: .common).autoconnect()
+
     var body: some View {
         // rounded rect taking up the top half of the screen with padding
         GeometryReader { geo in
@@ -46,10 +48,29 @@ struct ContentView: View {
         .onDisappear {
             audioRecorder.finishRecording()
         }
+        .onReceive(timer) { _ in
+            Task {
+                await runPeriodic()
+            }
+        }
     }
 
     private func toggleCam() {
         vc.setupVideoInput()
+    }
+    
+    private func runPeriodic() async {
+        let fileURL = audioRecorder.getRecordingURL()
+        do {
+//            let transcript = try await openAIHelper.transcribe(fileURL: fileURL).text
+            let transcript = "This is a test for testing purposes. My name is Bob Gendron."
+            print(transcript)
+
+            let completion = try await openAIHelper.sendChatCompletion(prompt: transcript).choices[0].message.content ?? "unknown"
+            print(completion)
+        } catch {
+            print("Error: \(error.localizedDescription)")
+        }
     }
 }
 

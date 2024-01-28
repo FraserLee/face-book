@@ -53,6 +53,10 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         return paths[0]
     }
+    
+    func getRecordingURL() -> URL {
+        return getDocumentsDirectory().appendingPathComponent("recording.m4a")
+    }
 
     func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         if !flag {
