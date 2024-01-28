@@ -71,15 +71,7 @@ struct ContentView: View {
                         }
                         
                         HStack (alignment: .bottom) {
-                            // Audio recording button
-                            Button("Record Audio") {
-                                if audioRecorder.isRecording {
-                                    audioRecorder.stopRecording()
-                                } else {
-                                    audioRecorder.startRecording()
-                                }
-                            }
-                            
+
                             Button (action: toggleCam) {
                                 Image(systemName: "camera.rotate.fill")
                                     .frame(width: 44, height: 44)
