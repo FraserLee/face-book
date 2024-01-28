@@ -5,16 +5,16 @@
 //  Created by Henri Lemoine on 2024-01-27.
 //
 
+import Foundation
 import AVFoundation
-
 
 class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     @Published var isRecording = false
     var audioRecorder: AVAudioRecorder!
     
     func startRecording() {
-        let audioFilename = getDocumentsDirectory().appendingPathComponent("recording.m4a")
-
+        let audioFilename = getRecordingURL()
+        
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
             AVSampleRateKey: 12000,
@@ -50,8 +50,7 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     }
 
     func getDocumentsDirectory() -> URL {
-        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        return paths[0]
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
     
     func getRecordingURL() -> URL {
@@ -61,6 +60,21 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         if !flag {
             finishRecording()
+        }
+    }
+}
+
+
+class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
+    var audioPlayer: AVAudioPlayer!
+
+    func playSound(url: URL) {
+        do {
+            //create your audioPlayer in your parent class as a property
+            self.audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayer.play()
+        } catch {
+            print("couldn't load the file")
         }
     }
 }
