@@ -10,15 +10,21 @@ let FUDGE_FACTOR = 0.21 // there's some offset to one of the transforms I can't 
 let SCALE_FACTOR = 2.4
 let SCALE_FACTOR_FRONT = 1.9
 
-class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
+var last_time_photo_taken = 0.0
+let MIN_PHOTO_INTERVAL = 0.3 // seconds (increase when testing with aws)
+
+class CameraViewController: UIViewController,
+                            AVCaptureVideoDataOutputSampleBufferDelegate,
+                            AVCapturePhotoCaptureDelegate {
     private var permissionGranted = false // Flag for permission
     private let captureSession = AVCaptureSession()
+    private let photoOutput = AVCapturePhotoOutput()
     private let sessionQueue = DispatchQueue(label: "sessionQueue")
     private var previewLayer = AVCaptureVideoPreviewLayer()
     var screenRect: CGRect! = nil            // For view dimensions
     var dimensions: CMVideoDimensions! = nil // For underlying camera dimensions
     var frontCam: Bool = false
-
+    
     // Detector
     private var videoOutput = AVCaptureVideoDataOutput()
     var requests = [VNDetectFaceRectanglesRequest]()
@@ -102,6 +108,8 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
 
         guard captureSession.canAddOutput(videoOutput) else { return }
         captureSession.addOutput(videoOutput)
+        guard captureSession.canAddOutput(photoOutput) else { return }
+        captureSession.addOutput(photoOutput)
 
         // Updates to UI must be on main queue
         DispatchQueue.main.async { [weak self] in
@@ -118,8 +126,8 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
             }
         })
     }
-    
-    
+
+
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:]) // Create handler to perform request on the buffer
@@ -130,7 +138,7 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
             print(error)
         }
     }
-    
+
 
     func extractDetections(_ results: [VNObservation]) {
         detectionLayer.sublayers = nil
@@ -155,7 +163,7 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
                 x2 = 1 - x2
             }
 
-            var s = frontCam ? SCALE_FACTOR_FRONT : SCALE_FACTOR
+            let s = frontCam ? SCALE_FACTOR_FRONT : SCALE_FACTOR
             let xc = (x1 + x2) / 2
             let yc = (y1 + y2) / 2
             let xl = xc + (x1 - xc) * s
@@ -174,12 +182,56 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
             boxLayer.borderColor = CGColor.init(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
             boxLayer.cornerRadius = 10
             detectionLayer.addSublayer(boxLayer)
-
-
+            photoCrop = faceObservation.boundingBox
             
+            // only take and upload a photo if more than MIN_PHOTO_INTERVAL has passed
+            let current_time = CACurrentMediaTime()
+            if (current_time - last_time_photo_taken > MIN_PHOTO_INTERVAL) {
+                last_time_photo_taken = current_time
+                capturePhoto()
+            }
         }
     }
+
+    func capturePhoto() {
+        let photoSettings = AVCapturePhotoSettings()
+
+        if let firstAvailablePreviewPhotoPixelFormatTypes = photoSettings.availablePreviewPhotoPixelFormatTypes.first {
+            photoSettings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: firstAvailablePreviewPhotoPixelFormatTypes]
+        }
+
+        photoOutput.capturePhoto(with: photoSettings, delegate: self)
+    }
+    
+    var photoCrop: CGRect! = nil
+
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        guard let data = photo.fileDataRepresentation() else { return }
+
+        // crop to correct subsection
+        let xc = (photoCrop.minX + photoCrop.maxX) / 2
+        let yc = 1.0 - (photoCrop.minY + photoCrop.maxY) / 2
+        let w = max(photoCrop.maxY - photoCrop.minY, photoCrop.maxX - photoCrop.minX) * (frontCam ? SCALE_FACTOR_FRONT : SCALE_FACTOR)
+
+        let cgImage: CGImage! = UIImage(data: data)?.cgImage?.cropping(to: CGRect(
+            x: (xc - w / 2) * CGFloat(dimensions.width),
+            y: (yc - w / 2) * CGFloat(dimensions.height),
+            width: w * CGFloat(dimensions.width),
+            height: w * CGFloat(dimensions.height)
+        ))
+                
+        let image = UIImage(cgImage: cgImage!, scale: 1.0, orientation: .right)
+        
+        personView.image = image
+        
+        
+        // @HENRI @SAN @SORAYA here just use
+        // image.pngData()
+        // or
+        // image.jpegData(compressionQuality: ..., )
+    }
 }
+
 
 // global variable marking the currently active view controller
 var vc: CameraViewController! = nil;
