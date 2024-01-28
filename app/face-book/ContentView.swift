@@ -149,12 +149,15 @@ struct ContentView: View {
                 return
             }
             
-//            let transcript = try await helper.transcribe(fileURL: fileURL).text
-////            let transcript = "This is a test for testing purposes. My name is Bob Gendron."
-//            print(transcript)
-//            
-//            let completion = try await helper.sendChatCompletion(prompt: transcript).choices[0].message.content ?? "unknown"
-//            print(completion)
+            let transcript = try await helper.transcribe(fileURL: fileURL).text
+//            let transcript = "This is a test for testing purposes. My name is Bob Gendron."
+            print(transcript)
+            
+            let name = try await helper.getName(prompt: transcript).choices[0].message.content ?? "unknown"
+            let info = try await helper.getInfo(prompt: transcript).choices[0].message.content ?? "unknown"
+
+            print(name)
+            print(info)
         } catch {
             print("Error: \(error.localizedDescription)")
         }
