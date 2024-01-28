@@ -90,24 +90,22 @@ struct ContentView: View {
     private func runPeriodic() async {
         let fileURL = audioRecorder.getRecordingURL()
         print(fileURL)
-        
-        print("Play sound")
-        audioPlayer.playSound(url: fileURL)
-        print("Play sound")
-//        do {
-//            print("Transcription Started.")
-//            let transcript = try await openAIHelper.transcribe(fileURL: fileURL).text
-////            let transcript = "This is a test for testing purposes. My name is Bob Gendron."
-//            print(transcript)
-//            print("Transcription Done.")
-//            
-//            print("Completion Started.")
-//            let completion = try await openAIHelper.sendChatCompletion(prompt: transcript).choices[0].message.content ?? "unknown"
-//            print(completion)
-//            print("Completion Done.")
-//        } catch {
-//            print("Error: \(error.localizedDescription)")
-//        }
+
+        do {
+            guard let helper = openAIHelper else {
+                print("OpenAIHelper is not initialized")
+                return
+            }
+            
+//            let transcript = try await helper.transcribe(fileURL: fileURL).text
+            let transcript = "This is a test for testing purposes. My name is Bob Gendron."
+            print(transcript)
+            
+            let completion = try await helper.sendChatCompletion(prompt: transcript).choices[0].message.content ?? "unknown"
+            print(completion)
+        } catch {
+            print("Error: \(error.localizedDescription)")
+        }
     }
     
     private func printFileSize() {

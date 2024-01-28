@@ -25,11 +25,26 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         do {
             audioRecorder = try AVAudioRecorder(url: audioFilename, settings: settings)
             audioRecorder.delegate = self
-            if !audioRecorder.record() {
-                print("Audio doesn't work, somehow?")
-            } else {
-                print("Recording started")
-                self.isRecording = true
+
+            let recordingSession = AVAudioSession.sharedInstance()
+            do {
+                try recordingSession.setCategory(.playAndRecord, mode: .default)
+                try recordingSession.setActive(true)
+                // Request permission to record.
+                recordingSession.requestRecordPermission() { [unowned self] allowed in
+                    DispatchQueue.main.async {
+                        if allowed {
+                            print("Permission to record granted. Starting recording...")
+                            self.audioRecorder?.record()
+                        } else {
+                            // Handle the case where permission is denied
+                            // Print error message
+                            print("Permission to record denied.")
+                        }
+                    }
+                }
+            } catch {
+                // Handle session setup failure
             }
         } catch {
             self.isRecording = false
@@ -38,7 +53,8 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     }
 
     func finishRecording() {
-        audioRecorder.stop()
+        // audioRecorder.stop()
+        audioRecorder?.stop()
         audioRecorder = nil
         self.isRecording = false
         print("Recording ended")
