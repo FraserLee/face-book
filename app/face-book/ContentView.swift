@@ -8,12 +8,20 @@
 import SwiftUI
 import SwiftData
 
+let TIMER_DELAY = 5.0
+let FILE_CHECK_DELAY = 1.0
+
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject var audioRecorder = AudioRecorder()
-    let openAIHelper = OpenAIHelper()
+    @StateObject var audioPlayer = AudioPlayer()
+    
+    @State private var isTimerActive = false
+    @State private var timer = Timer.publish(every: TIMER_DELAY, on: .main, in: .common).autoconnect()
+    @State private var fileCheckTimer = Timer.publish(every: FILE_CHECK_DELAY, on: .main, in: .common).autoconnect()
 
-    @State private var timer = Timer.publish(every: 20, on: .main, in: .common).autoconnect()
+    @State private var openAIHelper: OpenAIHelper?
+    @State private var helperInitializationError: Error?
 
     var body: some View {
         // rounded rect taking up the top half of the screen with padding
@@ -43,15 +51,35 @@ struct ContentView: View {
         }
         .padding(.horizontal)
         .onAppear {
+            initializeOpenAIHelper()
             audioRecorder.startRecording()
+            DispatchQueue.main.asyncAfter(deadline: .now() + TIMER_DELAY) {
+                self.isTimerActive = true
+                self.timer = Timer.publish(every: TIMER_DELAY, on: .main, in: .common).autoconnect()
+            }
+            self.fileCheckTimer = Timer.publish(every: FILE_CHECK_DELAY, on: .main, in: .common).autoconnect()
         }
         .onDisappear {
             audioRecorder.finishRecording()
+            self.fileCheckTimer.upstream.connect().cancel()
         }
         .onReceive(timer) { _ in
-            Task {
-                await runPeriodic()
+            if isTimerActive {
+                Task {
+                    await runPeriodic()
+                }
             }
+            printFileSize()
+        }
+    }
+    
+    private func initializeOpenAIHelper() {
+        do {
+            openAIHelper = try OpenAIHelper.create()
+            // Continue with what you need to do after successful initialization
+        } catch {
+            helperInitializationError = error
+            // Handle the error, possibly show an alert or a message to the user
         }
     }
 
@@ -61,15 +89,36 @@ struct ContentView: View {
     
     private func runPeriodic() async {
         let fileURL = audioRecorder.getRecordingURL()
-        do {
+        print(fileURL)
+        
+        print("Play sound")
+        audioPlayer.playSound(url: fileURL)
+        print("Play sound")
+//        do {
+//            print("Transcription Started.")
 //            let transcript = try await openAIHelper.transcribe(fileURL: fileURL).text
-            let transcript = "This is a test for testing purposes. My name is Bob Gendron."
-            print(transcript)
-
-            let completion = try await openAIHelper.sendChatCompletion(prompt: transcript).choices[0].message.content ?? "unknown"
-            print(completion)
+////            let transcript = "This is a test for testing purposes. My name is Bob Gendron."
+//            print(transcript)
+//            print("Transcription Done.")
+//            
+//            print("Completion Started.")
+//            let completion = try await openAIHelper.sendChatCompletion(prompt: transcript).choices[0].message.content ?? "unknown"
+//            print(completion)
+//            print("Completion Done.")
+//        } catch {
+//            print("Error: \(error.localizedDescription)")
+//        }
+    }
+    
+    private func printFileSize() {
+        let fileURL = audioRecorder.getRecordingURL()
+        do {
+            let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+            if let fileSize = attributes[.size] as? UInt64 {
+                print("File size: \(fileSize) bytes")
+            }
         } catch {
-            print("Error: \(error.localizedDescription)")
+            print("Error getting file size: \(error.localizedDescription)")
         }
     }
 }

@@ -8,22 +8,46 @@
 import Foundation
 import SwiftOpenAI
 
+enum OpenAIHelperError: Error {
+    case apiKeyNotFound
+    case invalidApiKey
+}
+
 class OpenAIHelper {
     private var apiKey: String
     private var service: OpenAIService
 
-    init() {
-        self.apiKey = "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"
+    private init(apiKey: String) {
+        self.apiKey = apiKey
         self.service = OpenAIServiceFactory.service(apiKey: apiKey)
+    }
+
+    static func create() throws -> OpenAIHelper {
+        guard let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
+              let dict = NSDictionary(contentsOfFile: path) as? [String: AnyObject],
+              let apiKey = dict["OPENAI_API_KEY"] as? String, !apiKey.isEmpty else {
+            throw OpenAIHelperError.apiKeyNotFound
+        }
+        print("Successfully initialized OpenAI Helper.")
+
+        return OpenAIHelper(apiKey: apiKey)
     }
 }
 
 extension OpenAIHelper {
     func transcribe(fileURL: URL) async throws -> AudioObject {
         do {
+            print("fileURL")
+            print(fileURL)
             let data = try Data(contentsOf: fileURL) // Data retrieved from the file URL.
+            print("data")
+            print(data)
             let parameters = AudioTranscriptionParameters(fileName: fileURL.lastPathComponent, file: data)
+            print("parameters")
+            print(parameters)
             let audioObject = try await service.createTranscription(parameters: parameters)
+            print("audioObject")
+            print(audioObject)
             return audioObject
         } catch {
             throw error

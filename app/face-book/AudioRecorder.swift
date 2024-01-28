@@ -25,9 +25,12 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         do {
             audioRecorder = try AVAudioRecorder(url: audioFilename, settings: settings)
             audioRecorder.delegate = self
-            audioRecorder.record()
-            self.isRecording = true
-            print("Recording started")
+            if !audioRecorder.record() {
+                print("Audio doesn't work, somehow?")
+            } else {
+                print("Recording started")
+                self.isRecording = true
+            }
         } catch {
             self.isRecording = false
             finishRecording()
